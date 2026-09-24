@@ -5,13 +5,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=sber-transport
-Group=sber-transport
-WorkingDirectory=/opt/sber-transport-assistant
+User=root
+Group=root
+WorkingDirectory=/root/sber-transport-assistant
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
-EnvironmentFile=/opt/sber-transport-assistant/.env
-ExecStart=/opt/sber-transport-assistant/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
+EnvironmentFile=/root/sber-transport-assistant/.env
+ExecStart=/root/sber-transport-assistant/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=3
 StartLimitIntervalSec=60
@@ -20,8 +20,7 @@ TimeoutStopSec=30
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
-ReadOnlyPaths=/opt/sber-transport-assistant
+ProtectHome=false
 
 [Install]
 WantedBy=multi-user.target

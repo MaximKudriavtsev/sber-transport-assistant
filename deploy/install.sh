@@ -11,7 +11,7 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
-APP_USER="${APP_USER:-sber-transport}"
+APP_USER="${APP_USER:-root}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 UNIT_NAME="sber-transport.service"
@@ -25,7 +25,7 @@ else
   exit 1
 fi
 
-if ! id "${APP_USER}" >/dev/null 2>&1; then
+if [[ "${APP_USER}" != "root" ]] && ! id "${APP_USER}" >/dev/null 2>&1; then
   useradd --system --home "${APP_DIR}" --shell /usr/sbin/nologin "${APP_USER}"
 fi
 
@@ -44,9 +44,9 @@ sudo -u "${APP_USER}" "${APP_DIR}/.venv/bin/python" -m pip install --upgrade pip
 sudo -u "${APP_USER}" "${APP_DIR}/.venv/bin/pip" install -r "${APP_DIR}/requirements.txt"
 
 sed \
-  -e "s|/opt/sber-transport-assistant|${APP_DIR}|g" \
-  -e "s|^User=sber-transport|User=${APP_USER}|" \
-  -e "s|^Group=sber-transport|Group=${APP_USER}|" \
+  -e "s|/root/sber-transport-assistant|${APP_DIR}|g" \
+  -e "s|^User=root|User=${APP_USER}|" \
+  -e "s|^Group=root|Group=${APP_USER}|" \
   "${SCRIPT_DIR}/sber-transport.service" > "/etc/systemd/system/${UNIT_NAME}"
 
 systemctl daemon-reload

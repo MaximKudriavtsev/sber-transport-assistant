@@ -13,11 +13,10 @@ Node.js не нужен. Frontend статический и отдаётся Fas
 
 ## 1. Клонирование
 
+Проект уже лежит у пользователя `root`:
+
 ```bash
-sudo mkdir -p /opt/sber-transport-assistant
-sudo chown "$USER":"$USER" /opt/sber-transport-assistant
-git clone https://github.com/Gavrilov71/sber-transport-assistant.git /opt/sber-transport-assistant
-cd /opt/sber-transport-assistant
+cd /root/sber-transport-assistant
 ```
 
 ## 2. Установка сервиса
@@ -26,7 +25,7 @@ cd /opt/sber-transport-assistant
 sudo bash deploy/install.sh
 ```
 
-Скрипт создаёт системного пользователя `sber-transport`, Linux `.venv`, ставит runtime-зависимости из `requirements.txt`, копирует `deploy/sber-transport.service` и запускает сервис.
+Скрипт ставит зависимости в `/root/sber-transport-assistant/.venv`, копирует `deploy/sber-transport.service` и запускает сервис от `root`.
 
 Если `.env` ещё нет, скрипт копирует `.env.example`. До заполнения ключа приложение работает в demo mode. После правки ключа:
 
