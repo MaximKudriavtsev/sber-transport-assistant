@@ -57,6 +57,7 @@ systemctl --no-pager --full status "${UNIT_NAME}" || true
 if command -v nginx >/dev/null 2>&1 && [[ -d /etc/nginx/sites-available ]]; then
   cp "${SCRIPT_DIR}/nginx-sber-transport.conf" /etc/nginx/sites-available/sber-transport
   ln -sfn /etc/nginx/sites-available/sber-transport /etc/nginx/sites-enabled/sber-transport
+  rm -f /etc/nginx/sites-enabled/gorodvdele.ru
   nginx -t
   systemctl reload nginx
   echo "Nginx site enabled for gorodvdele.ru."
@@ -64,6 +65,12 @@ else
   echo "Nginx site was not enabled. Install nginx, then run this script again."
 fi
 
-curl --fail --silent --show-error "http://127.0.0.1:8000/api/health"
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if curl --fail --silent --show-error "http://127.0.0.1:8000/api/health"; then
+    echo
+    break
+  fi
+  sleep 1
+done
 echo
 echo "Service is installed. Diagnostics stay on localhost: curl http://127.0.0.1:8000/api/diagnostics/gigachat"
