@@ -54,15 +54,14 @@ systemctl enable "${UNIT_NAME}"
 systemctl restart "${UNIT_NAME}"
 systemctl --no-pager --full status "${UNIT_NAME}" || true
 
-if [[ -n "${DOMAIN:-}" ]] && command -v nginx >/dev/null 2>&1 && [[ -d /etc/nginx/sites-available ]]; then
-  sed "s/YOUR_DOMAIN/${DOMAIN}/g" "${SCRIPT_DIR}/nginx-sber-transport.conf" \
-    > "/etc/nginx/sites-available/sber-transport"
+if command -v nginx >/dev/null 2>&1 && [[ -d /etc/nginx/sites-available ]]; then
+  cp "${SCRIPT_DIR}/nginx-sber-transport.conf" /etc/nginx/sites-available/sber-transport
   ln -sfn /etc/nginx/sites-available/sber-transport /etc/nginx/sites-enabled/sber-transport
   nginx -t
   systemctl reload nginx
-  echo "Nginx site enabled for ${DOMAIN}."
+  echo "Nginx site enabled for gorodvdele.ru."
 else
-  echo "Nginx site was not enabled. To publish it: sudo DOMAIN=example.com bash deploy/install.sh"
+  echo "Nginx site was not enabled. Install nginx, then run this script again."
 fi
 
 curl --fail --silent --show-error "http://127.0.0.1:8000/api/health"

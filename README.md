@@ -118,7 +118,7 @@ python -m app.ingest
 sudo bash deploy/install.sh
 ```
 
-С доменом: `sudo DOMAIN=example.com bash deploy/install.sh`. Обновление: `sudo bash deploy/update.sh`. Полная инструкция — в [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Сайт: [gorodvdele.ru](https://gorodvdele.ru), сервер `89.223.120.160`. Обновление: `sudo bash deploy/update.sh`. Полная инструкция — в [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Безопасность
 

@@ -59,15 +59,18 @@ curl http://127.0.0.1:8000/api/diagnostics/gigachat
 
 ## 3. Nginx
 
-```bash
-sudo DOMAIN=example.com bash deploy/install.sh
-```
+Сервер: `89.223.120.160`. Домен: `gorodvdele.ru`.
 
-Конфиг: `deploy/nginx-sber-transport.conf`. Снаружи закрыты `/docs`, `/redoc`, `/openapi.json`, `/api/diagnostics/` и `/api/debug/`. Диагностика остаётся доступна с `127.0.0.1:8000`.
+`deploy/install.sh` сам включает `deploy/nginx-sber-transport.conf` для `gorodvdele.ru` и `www.gorodvdele.ru`. Снаружи закрыты `/docs`, `/redoc`, `/openapi.json`, `/api/diagnostics/` и `/api/debug/`. Диагностика остаётся доступна с `127.0.0.1:8000`.
 
 При `APP_ENV=production` приложение само не публикует OpenAPI.
 
-HTTPS добавляется Certbot или тем способом, который уже принят на сервере.
+HTTPS, если сертификата ещё нет:
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d gorodvdele.ru -d www.gorodvdele.ru
+```
 
 ## 4. Обновление
 
