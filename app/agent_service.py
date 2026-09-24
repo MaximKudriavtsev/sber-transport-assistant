@@ -20,7 +20,68 @@ VALID_ISSUES = ISSUE_TYPES | {"benefit_eligibility", "benefit_issuance", "route_
 ISSUE_ALIASES = {"payment_failure": "payment_problem", "bank_card_failure": "payment_problem", "missed_bus": "missed_trip", "unsafe_vehicle": "vehicle_defect_hazard"}
 INTERNAL_REASONS = {"Тип проблемы недостаточно определён для адресации.", "Подтверждённый адресат не найден."}
 TOOL_MARKUP = re.compile(r"<\s*/?\s*[\w|]*(?:tool_calls|function_call|invoke|parameter)\b", re.I)
+CLOCK_TIME = re.compile(r"(?<!\d)(\d{1,2}):(\d{2})(?!\d)")
+NO_SCHEDULE_ANSWER = "Расписание в официальной базе помощника пока не загружено."
+DEPARTURE_MARKERS = (
+    "расписан", "во сколько", "время отправлен", "время прибыт",
+    "когда отход", "когда отправ", "когда приход", "когда прибы",
+)
 TRIP_PENDING = {"is_trip_ongoing", "is_now", "is_current_trip", "is_trip_ongoing", "is_trip_ongoing_now"}
+
+
+def asks_departure_time(message: str) -> bool:
+    text = message.lower().replace("ё", "е")
+    return any(marker in text for marker in DEPARTURE_MARKERS)
+
+
+def clock_times(text: str) -> set[str]:
+    found = set()
+    for match in CLOCK_TIME.finditer(text):
+        hour, minute = int(match.group(1)), int(match.group(2))
+        if hour <= 23 and minute <= 59:
+            found.add(f"{hour:02d}:{minute:02d}")
+    return found
+
+
+def confirmed_schedule_times(results: list[dict]) -> set[str]:
+    found = set()
+    for result in results:
+        if not result.get("ok"):
+            continue
+        for row in result.get("schedules") or []:
+            for item in row.get("times") or []:
+                found.update(clock_times(str(item)))
+    return found
+
+
+def schedule_departure_answer(results: list[dict]) -> str:
+    """State terminal departures from get_schedule when the model omitted them."""
+    lines = []
+    for result in results:
+        if not result.get("ok"):
+            continue
+        for row in result.get("schedules") or []:
+            notes = row.get("notes") or []
+            times = []
+            for index, item in enumerate(row.get("times") or []):
+                note = str(notes[index]).strip() if index < len(notes) and notes[index] else ""
+                times.append(f"{item} ({note})" if note else str(item))
+            day = ", ".join(str(item) for item in (row.get("days") or []))
+            lines.append(f"{row.get('stop')}, {day}: {', '.join(times)}")
+    return "Официальное расписание отправления с конечных. " + " ".join(lines)
+
+
+def unconfirmed_departure_answer(message: str, final: dict, schedule_results: list[dict]) -> dict | None:
+    """Departure times are allowed only from get_schedule, never from other chunks."""
+    if final.get("status") not in {"answered", "no_data"} or not asks_departure_time(message):
+        return None
+    confirmed = confirmed_schedule_times(schedule_results)
+    claimed = clock_times(str(final.get("answer") or ""))
+    if confirmed and claimed and claimed <= confirmed:
+        return None
+    if confirmed:
+        return {"status": "answered", "answer": schedule_departure_answer(schedule_results), "used_source_ids": []}
+    return {"status": "no_data", "answer": NO_SCHEDULE_ANSWER, "used_source_ids": []}
 
 
 def explicit_trip_status(message: str, pending: str | None = None) -> bool | None:
@@ -43,7 +104,7 @@ SYSTEM_PROMPT = """Ты — разговорный транспортный по
 Для immediate_danger ответ должен состоять максимум из двух предложений: «Если есть непосредственная опасность, позвоните 112. Сообщите оператору, что произошло и где находится транспорт». Можно назвать конкретную опасность из сообщения пользователя, но НЕ добавляй другие действия или способы связи: их нет в проверенном guidance. Не начинай оформление формальной жалобы, если пользователь этого не просил.
 Примеры классификации безопасности: «водитель пьяный, мы сейчас едем» = safety/unsafe_driver/immediate_danger, вызови get_emergency_guidance; «дверь не закрывается, так и едем» = safety/vehicle_defect_hazard/immediate_danger; «водитель пьяный» без времени = safety/unsafe_driver/safety, status=clarify, спроси, продолжается ли поездка сейчас, НЕ вызывай get_emergency_guidance; «я уже вышел, это было вчера» после этого = complaint/unsafe_driver/safety, вызови resolve_responsibility без города и номера маршрута. «водитель нахамил» = complaint/driver_behavior/normal, уточни только город или межмуниципальный статус для адресации.
 «Автобус не приехал» — нарушение расписания (issue_type=missed_trip). Для формальной адресации достаточно муниципалитета ИЛИ подтверждённого межмуниципального статуса маршрута, это альтернативы, не два обязательных слота. Без номера маршрута спроси ТОЛЬКО: «Подскажите, в каком городе это произошло?»; pending_clarification="municipality". Не проси одновременно номер маршрута. Если номер маршрута уже назван, вызови resolve_route и при нехватке контекста уточни ровно один недостающий параметр, не переспрашивай номер. После ответа «Узловая» вызови resolve_responsibility с issue_type=missed_trip, municipality=uzlovaya; для Новомосковска — municipality=novomoskovsk. Если есть номер 208, сначала resolve_route, затем передай подтверждённый route_scope в resolve_responsibility.
-Все тарифы, телефоны, URL, ведомства, маршруты, перевозчиков и правила бери только из tools. Учитывай scope каждого найденного источника: не переноси процедуру городского перевозчика на неизвестный город или маршрут; при банковской карте без города используй только применимые региональные инструкции. resolve_responsibility используй только для формальной адресации, resolve_route — только если нужен конкретный маршрут. Не требуй ненужные слоты. При отсутствии подтверждённой цены или маршрута не угадывай.
+Все тарифы, телефоны, URL, ведомства, маршруты, перевозчиков и правила бери только из tools. Учитывай scope каждого найденного источника: не переноси процедуру городского перевозчика на неизвестный город или маршрут. Цифры из результата с applicability=conditional называй только вместе с перевозчиком из поля operator; без известного города не обобщай их на область. Цену проездного и тарифа за километр называй только из get_fare_card. Если карточки нет, status=no_data: не бери сумму из текста поиска и не вызывай calculate_fare. Для цены, льготы и срока назови дату съёма источника одной короткой фразой, если в результате инструмента есть fetched_at. На вопрос о времени отправления вызови get_schedule. Если инструмент вернул reason=no_schedule_data, status=no_data и короткая фраза, что расписание в официальной базе помощника пока не загружено. Не подставляй часы из других чанков. resolve_responsibility используй только для формальной адресации, resolve_route — только если нужен конкретный маршрут. Вопрос «кто перевозчик / какой маршрут» закрывается resolve_route, не search_official_sources. Название маршрута тоже ищи через resolve_route: origin и destination — конечные остановки, name — полное название, municipality — только город (Тула или tula), не слово из названия остановки вроде «Тульская». Если инструмент вернул маршрут по названию или конечным, он подтверждён даже без номера. Нет расписания — это не «маршрут не найден»: get_schedule вызывай только когда пассажир спрашивает время отправления. Не требуй ненужные слоты. При отсутствии подтверждённой цены или маршрута не угадывай.
 Учитывай состояние диалога, принимай явные исправления пользователя: новый город, другой тип карты, «это было вчера». Сохраняй подтверждённые слоты, если реплика их не меняет. Не показывай служебные reason/status tools пользователю. Пиши по-русски, естественно и кратко. Название публикации и строку «Источник:» в answer не вставляй: интерфейс покажет источники по used_source_ids. При troubleshooting не называй организацию для обращения, пока не вызван resolve_responsibility; просто объясни действия. issue_type выбирай только из: payment_problem, validator_problem, transport_card, double_charge, schedule_violation, missed_trip, no_stop, driver_behavior, unsafe_driver, vehicle_defect_hazard, accident, benefit_eligibility, benefit_issuance, route_identity, route_scope, route_operator, unknown. severity только normal, safety, immediate_danger. Если задаёшь вопрос, status=clarify и pending_clarification указывает недостающий слот. Сделай не более трёх tool calls за ход, затем финальный JSON.
 Финал — строго JSON без markdown:
 {"status":"answered|clarify|no_data|service_error","answer":"текст","task_mode":"information|troubleshooting|complaint|safety|benefit_help|route_help|unknown","issue_type":"тип проблемы или unknown","severity":"normal|safety|immediate_danger","state_patch":{"slots":{},"pending_clarification":null},"used_source_ids":[]}
@@ -238,6 +299,14 @@ class AgentAssistantService:
                 for result in (tools.responsibility_result, tools.route_result, tools.emergency_result):
                     if result and (result.get("verified") or result.get("status") == "resolved"):
                         evidence += "\n" + json.dumps(result, ensure_ascii=False)
+                if tools.fare_results:
+                    evidence += "\n" + json.dumps(tools.fare_results, ensure_ascii=False)
+                if tools.schedule_results:
+                    evidence += "\n" + json.dumps(tools.schedule_results, ensure_ascii=False)
+                refused = unconfirmed_departure_answer(message, final, tools.schedule_results)
+                if refused:
+                    final = refused
+                    authority = None
                 stated_route = patch["slots"].get("route_number") or before["slots"].get("route_number")
                 if stated_route and (stated_route in message or stated_route == before["slots"].get("route_number")):
                     evidence += "\nНомер маршрута, названный пассажиром: " + stated_route

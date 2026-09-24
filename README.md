@@ -58,6 +58,7 @@ GIGACHAT_VERIFY_SSL=false
 ## Проверка
 
 ```bash
+pip install -r requirements-dev.txt
 GIGACHAT_CREDENTIALS=test-placeholder python -m pytest -q
 ```
 
@@ -111,7 +112,13 @@ python -m app.ingest
 
 ## Сервер
 
-Для production нужны Python, systemd и reverse proxy (обычно Nginx). Node.js не нужен. Полная инструкция — в [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Для production нужны Python 3.12, systemd и Nginx. На сервере, в каталоге проекта:
+
+```bash
+sudo bash deploy/install.sh
+```
+
+С доменом: `sudo DOMAIN=example.com bash deploy/install.sh`. Обновление: `sudo bash deploy/update.sh`. Полная инструкция — в [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Безопасность
 

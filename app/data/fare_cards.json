@@ -1,0 +1,54 @@
+[
+  {
+    "id": "stk-benefit-month",
+    "kind": "pass",
+    "title": "Льготный проездной на 1 месяц",
+    "amount": 750,
+    "currency": "RUB",
+    "unit": "month",
+    "audience": "федеральный льготник, региональный льготник, пенсионер, студент",
+    "valid_note": "Приобретение с 15 числа текущего месяца по 5 число месяца действия льготного проездного билета.",
+    "source_id": "oeirc-stk-current",
+    "source_url": "https://oeirc.ru/?page=tk/stk.php",
+    "quoted_excerpt": "Федеральный льготник, региональный льготник, пенсионер, студент\n– 750 рублей на 1 месяц."
+  },
+  {
+    "id": "stk-school-one-mode",
+    "kind": "pass",
+    "title": "Школьный проездной на 1 вид транспорта",
+    "amount": 200,
+    "currency": "RUB",
+    "unit": "month",
+    "audience": "школьник",
+    "valid_note": "На 1 вид транспорта. Постановление администрации г. Тулы от 06.11.2014 № 3661.",
+    "source_id": "oeirc-stk-current",
+    "source_url": "https://oeirc.ru/?page=tk/stk.php",
+    "quoted_excerpt": "Школьник\n-200 рублей (на 1 вид транспорта) и 350 рублей (на 3 вида транспорта)."
+  },
+  {
+    "id": "stk-school-three-modes",
+    "kind": "pass",
+    "title": "Школьный проездной на 3 вида транспорта",
+    "amount": 350,
+    "currency": "RUB",
+    "unit": "month",
+    "audience": "школьник",
+    "valid_note": "На 3 вида транспорта. Постановление администрации г. Тулы от 06.11.2014 № 3661.",
+    "source_id": "oeirc-stk-current",
+    "source_url": "https://oeirc.ru/?page=tk/stk.php",
+    "quoted_excerpt": "Школьник\n-200 рублей (на 1 вид транспорта) и 350 рублей (на 3 вида транспорта)."
+  },
+  {
+    "id": "troyka-pass-30-days",
+    "kind": "pass",
+    "title": "Абонемент 30 дней Тула",
+    "amount": 1800,
+    "currency": "RUB",
+    "unit": "30 days",
+    "audience": "карта «Тройка»",
+    "valid_note": "Муниципальные маршруты городского сообщения, без ограничения числа поездок.",
+    "source_id": "oeirc-troyka-current",
+    "source_url": "https://oeirc.ru/?page=tk/troyka",
+    "quoted_excerpt": "«Абонемент 30 дней Тула 1800руб.»"
+  }
+]

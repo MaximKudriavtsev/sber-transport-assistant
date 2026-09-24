@@ -30,6 +30,10 @@ class Settings(BaseSettings):
         return not bool(self.gigachat_credentials.strip())
 
     @property
+    def is_development(self) -> bool:
+        return self.app_env.lower() in {"development", "dev"}
+
+    @property
     def sources_path(self) -> Path:
         return BASE_DIR / "data" / "sources.json"
 

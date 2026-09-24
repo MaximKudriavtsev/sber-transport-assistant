@@ -46,7 +46,8 @@
     "category": "маршруты_тройка_кошелек",
     "priority": 95,
     "current": true,
-    "enabled": true
+    "enabled": false,
+    "note": "Справочник маршрутов обслуживает resolve_route, не BM25."
   },
   {
     "id": "oeirc-routes-subscription",
@@ -58,7 +59,8 @@
     "category": "маршруты_тройка_абонемент",
     "priority": 95,
     "current": true,
-    "enabled": true
+    "enabled": false,
+    "note": "Справочник маршрутов обслуживает resolve_route, не BM25."
   },
   {
     "id": "oeirc-transport-project",
@@ -171,5 +173,53 @@
     "priority": 85,
     "current": true,
     "enabled": true
+  },
+  {
+    "id": "oeirc-discovered-c3abfb76c9",
+    "scope": "region",
+    "audience": "passenger",
+    "doc_type": "pdf",
+    "title": "ОЕИРЦ — Правила транспортной системы  «СБЕРТРОЙКА»",
+    "url": "https://oeirc.ru/tk/docs/ПРАВИЛА ТРАНСПОРТНОЙ СИСТЕМЫ ТРАНСПОРТНО-КАРТОЧНЫЙ ПРОЦЕССИНГ СБЕРТРОЙКА.pdf",
+    "kind": "pdf",
+    "authority": "АО ОЕИРЦ",
+    "category": "нормативные_документы",
+    "priority": 68,
+    "current": true,
+    "enabled": true,
+    "content_hash": "586506bd1f32930647d799ea721fd9588300a720e1a8ac6b9b24d30fc00f89e8",
+    "discovered": true
+  },
+  {
+    "id": "oeirc-discovered-feef90f3bb",
+    "scope": "region",
+    "audience": "passenger",
+    "doc_type": "pdf",
+    "title": "ОЕИРЦ — Приказ о внесении изменений в правила ТС ТКП Сбертройка",
+    "url": "https://oeirc.ru/about/docs/Приказ о внесении изменений в Правила ТС ТКП Сбертройка.pdf",
+    "kind": "pdf",
+    "authority": "АО ОЕИРЦ",
+    "category": "нормативные_документы",
+    "priority": 68,
+    "current": true,
+    "enabled": true,
+    "content_hash": "72a8a526f0d9d3bfde845a85370e19514f19a537d1fb4f28c900c049bb49eae2",
+    "discovered": true
+  },
+  {
+    "id": "oeirc-discovered-862dacd7b3",
+    "scope": "region",
+    "audience": "operator_technical",
+    "doc_type": "pdf",
+    "title": "ОЕИРЦ — Технический регламент для участников АСОП ТО.",
+    "url": "https://oeirc.ru/about/docs/Технический регламент Правила АСОП ТО.pdf",
+    "kind": "pdf",
+    "authority": "АО ОЕИРЦ",
+    "category": "нормативные_документы",
+    "priority": 68,
+    "current": true,
+    "enabled": false,
+    "content_hash": "2987579b542d5b516176473a3f70323bc9fbb34b8356c134cfbece7ee265179b",
+    "discovered": true
   }
 ]

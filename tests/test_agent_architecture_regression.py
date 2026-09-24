@@ -229,10 +229,31 @@ def test_source_applicability_requires_confirmed_scope():
     assert not source_applicable({"scope": "unknown"}, {"municipality": "tula"})
 
 
-def test_generic_payment_search_excludes_local_operator_source():
+def test_generic_payment_search_labels_unknown_operator_source():
+    from app.agent_tools import ToolRunContext
+    from app.text_search import CONDITIONAL_OPERATOR_NOTE
+
+    search = OfficialTextSearch(get_settings())
+    context = {"municipality": None, "operator": None}
+    hits = search.search("как вывести банковскую карту из стоп-листа", top_k=8, context=context)
+    assert hits
+    operator_hits = [hit for hit in hits if hit.row["source_id"] == "tulatrans-payment-current"]
+    assert operator_hits
+    assert all(hit.applicability == "conditional" for hit in operator_hits)
+    assert any(hit.row["source_id"] == "oeirc-faq-current" for hit in hits)
+    published = ToolRunContext(search, context).public_row(operator_hits[0].row, operator_hits[0].score)
+    assert published["applicability"] == "conditional"
+    assert published["scope"] == "operator"
+    assert published["operator"] == 'МКП "Тулгорэлектротранс"'
+    assert published["applicability_note"] == CONDITIONAL_OPERATOR_NOTE
+    assert search.details(operator_hits[0].row["id"], context=context)
+    assert search.details(operator_hits[0].row["id"], context={"operator": "ООО «ИРБИС»"}) == []
+
+
+def test_foreign_operator_hides_local_payment_source():
     search = OfficialTextSearch(get_settings())
     hits = search.search("как вывести банковскую карту из стоп-листа", top_k=8,
-                         context={"municipality": None, "operator": None})
+                         context={"operator": "ООО «ИРБИС»"})
     assert hits
     assert all(hit.row["source_id"] != "tulatrans-payment-current" for hit in hits)
     assert any(hit.row["source_id"] == "oeirc-faq-current" for hit in hits)

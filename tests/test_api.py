@@ -6,6 +6,17 @@ from app.main import app, service
 client = TestClient(app)
 
 
+def test_production_hides_api_docs():
+    from app.main import api_docs_urls
+
+    assert api_docs_urls("production") == {
+        "docs_url": None,
+        "redoc_url": None,
+        "openapi_url": None,
+    }
+    assert api_docs_urls("development")["docs_url"] == "/docs"
+
+
 def test_health():
     response = client.get("/api/health")
     assert response.status_code == 200
@@ -13,7 +24,7 @@ def test_health():
     assert data["status"] == "ok"
     assert data["agent_ready"] is True
     assert data["retrieval_mode"] == "agentic_text_search"
-    assert data["rag_chunks"] >= 60
+    assert data["rag_chunks"] >= 45
 
 
 def test_function_call_tool_result_and_final_answer(monkeypatch):

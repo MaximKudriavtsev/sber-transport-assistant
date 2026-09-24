@@ -1,16 +1,15 @@
-# Deployment для Макса
+# Deployment
 
-Ниже — рекомендуемый single-server deployment на Linux (Ubuntu/Debian-подобная система).
+Single-server deployment на Linux (Ubuntu/Debian). Файлы лежат в `deploy/`.
 
 ## Что нужно на сервере
 
-- Python **3.12.x**
-- `python3-venv`, `pip`
+- Python **3.12** и `python3.12-venv`
 - Git
-- Nginx (если нужен домен/HTTPS/reverse proxy)
+- Nginx, если нужен домен или HTTPS
 - systemd
 
-**Node.js / npm не нужны.** Frontend уже статический и обслуживается FastAPI.
+Node.js не нужен. Frontend статический и отдаётся FastAPI.
 
 ## 1. Клонирование
 
@@ -21,27 +20,21 @@ git clone https://github.com/Gavrilov71/sber-transport-assistant.git /opt/sber-t
 cd /opt/sber-transport-assistant
 ```
 
-## 2. Python environment
+## 2. Установка сервиса
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+sudo bash deploy/install.sh
 ```
 
-Если `python3.12` называется на сервере просто `python3`, используйте `python3`, предварительно проверив `python3 --version`.
+Скрипт создаёт системного пользователя `sber-transport`, Linux `.venv`, ставит runtime-зависимости из `requirements.txt`, копирует `deploy/sber-transport.service` и запускает сервис.
 
-## 3. `.env`
-
-`.env` намеренно отсутствует в Git. Создать вручную:
+Если `.env` ещё нет, скрипт копирует `.env.example`. До заполнения ключа приложение работает в demo mode. После правки ключа:
 
 ```bash
-cp .env.example .env
-nano .env
+sudo systemctl restart sber-transport
 ```
 
-Минимум заполнить:
+Минимум в `.env`:
 
 ```env
 APP_ENV=production
@@ -53,133 +46,62 @@ GIGACHAT_MODEL=GigaChat-3-Ultra
 GIGACHAT_VERIFY_SSL=false
 ```
 
-Права:
+`chmod 600 .env` делает `install.sh`. Не добавляйте `.env` в Git.
 
-```bash
-chmod 600 .env
-```
-
-Никогда не добавлять `.env` в Git.
-
-## 4. Проверка до systemd
-
-```bash
-source .venv/bin/activate
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-В другом терминале:
+Проверка на самом сервере:
 
 ```bash
 curl http://127.0.0.1:8000/api/health
 curl http://127.0.0.1:8000/api/diagnostics/gigachat
 ```
 
-`/api/health` должен вернуть `status: ok`, а после настройки GigaChat `agent_ready` должен стать `true`.
+`/api/health` должен вернуть `status: ok`. После настройки GigaChat `agent_ready` должен стать `true`.
 
-## 5. systemd
-
-Создать `/etc/systemd/system/sber-transport.service`:
-
-```ini
-[Unit]
-Description=SBER Transport Assistant
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/opt/sber-transport-assistant
-EnvironmentFile=/opt/sber-transport-assistant/.env
-ExecStart=/opt/sber-transport-assistant/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Перед запуском отдать каталог сервисному пользователю либо выбрать отдельного пользователя приложения:
+## 3. Nginx
 
 ```bash
-sudo chown -R www-data:www-data /opt/sber-transport-assistant
-sudo systemctl daemon-reload
-sudo systemctl enable --now sber-transport
-sudo systemctl status sber-transport
+sudo DOMAIN=example.com bash deploy/install.sh
 ```
 
-### Почему один worker
+Конфиг: `deploy/nginx-sber-transport.conf`. Снаружи закрыты `/docs`, `/redoc`, `/openapi.json`, `/api/diagnostics/` и `/api/debug/`. Диагностика остаётся доступна с `127.0.0.1:8000`.
 
-Conversation state сейчас хранится в памяти процесса. Несколько Uvicorn workers получили бы разные состояния диалога. Пока не добавлен Redis/БД, используйте `--workers 1`.
+При `APP_ENV=production` приложение само не публикует OpenAPI.
 
-## 6. Nginx
+HTTPS добавляется Certbot или тем способом, который уже принят на сервере.
 
-Пример `/etc/nginx/sites-available/sber-transport`:
-
-```nginx
-server {
-    listen 80;
-    server_name YOUR_DOMAIN;
-
-    client_max_body_size 2m;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
-    }
-}
-```
-
-Затем:
+## 4. Обновление
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/sber-transport /etc/nginx/sites-enabled/sber-transport
-sudo nginx -t
-sudo systemctl reload nginx
+sudo bash deploy/update.sh
 ```
 
-HTTPS можно добавить Certbot или инфраструктурным способом сервера.
-
-## 7. Обновление
+Перед обновлением на production можно прогнать тесты:
 
 ```bash
-cd /opt/sber-transport-assistant
-sudo -u www-data git pull --ff-only
-sudo -u www-data .venv/bin/pip install -r requirements.txt
-sudo systemctl restart sber-transport
-curl http://127.0.0.1:8000/api/health
-```
-
-Перед production update желательно:
-
-```bash
+.venv/bin/pip install -r requirements-dev.txt
 GIGACHAT_CREDENTIALS=test-placeholder-for-mocked-tests .venv/bin/python -m pytest -q
 ```
 
-## 8. Rollback
+На сервере для работы приложения достаточно `requirements.txt`. `requirements-dev.txt` нужен для тестов и пересборки корпуса.
 
-Сначала посмотреть историю:
+## 5. Один worker
+
+Conversation state хранится в памяти процесса. Несколько Uvicorn workers получили бы разные состояния диалога. Пока нет Redis или БД, в unit-файле стоит `--workers 1`.
+
+## 6. Rollback
 
 ```bash
 git log --oneline -10
 ```
 
-Затем вернуть известный стабильный commit и перезапустить сервис. На production не делайте произвольный `git reset --hard` без фиксации текущего commit SHA.
+Верните известный стабильный commit и выполните `sudo systemctl restart sber-transport`. На production не делайте произвольный `git reset --hard` без фиксации текущего commit SHA.
 
-## 9. Что не должно попадать на сервер из локальной разработки
+## 7. Что не копировать с локальной машины
 
-- `.venv/` или `.venv-new/` с Windows;
-- `.env` из рабочего компьютера;
+- `.venv/` с Windows или macOS;
+- локальный `.env`;
 - `references/` с исходниками дизайна;
 - `raw_sources/` и большие PDF-кэши;
-- `.pytest_cache/`, `__pycache__/`, IDE-файлы;
-- вложенная копия `sber-main/sber-main/`.
+- `.pytest_cache/`, `__pycache__/`, файлы IDE.
 
 Сервер сам создаёт Linux `.venv` из `requirements.txt`.

@@ -10,20 +10,48 @@ from .config import Settings
 from .municipalities import normalize_municipality
 
 
-def source_applicable(source: dict, context: dict | None = None) -> bool:
-    """Fail closed when a source's documented coverage exceeds known context."""
+def source_in_passenger_search(source: dict) -> bool:
+    """Operator manuals and disabled documents stay out of search and details."""
+    if source.get("enabled", True) is False:
+        return False
+    return source.get("audience", "passenger") == "passenger"
+
+
+CONDITIONAL_OPERATOR_NOTE = "тариф этого перевозчика, не всей области"
+
+
+def source_applicability(source: dict, context: dict | None = None) -> str | None:
+    """Return applicable, conditional, or None when the source must be dropped.
+
+    An operator page stays visible when the operator slot is empty, but only as
+    conditional. A known operator that does not match is still dropped.
+    """
     context = context or {}
     scope = source.get("scope", "unknown")
     if scope == "region":
-        return True
+        return "applicable"
     if scope == "municipality":
         city = str(context.get("municipality") or "")
-        return bool(city and source.get("municipality") == (normalize_municipality(city) or city))
+        if city and source.get("municipality") == (normalize_municipality(city) or city):
+            return "applicable"
+        return None
     if scope == "operator":
-        return bool(context.get("operator") and source.get("operator") == context["operator"])
+        known = context.get("operator")
+        if known and source.get("operator") == known:
+            return "applicable"
+        if not known:
+            return "conditional"
+        return None
     if scope == "route_specific":
-        return bool(source.get("route_number") and context.get("route_number") == source["route_number"])
-    return False
+        if source.get("route_number") and context.get("route_number") == source["route_number"]:
+            return "applicable"
+        return None
+    return None
+
+
+def source_applicable(source: dict, context: dict | None = None) -> bool:
+    """True only for a confirmed scope match. Unknown operator is not confirmed."""
+    return source_applicability(source, context) == "applicable"
 
 
 STOPWORDS = {
@@ -31,24 +59,112 @@ STOPWORDS = {
     "у", "из", "к", "ко", "при", "это", "где", "можно", "могу", "сейчас", "щас",
 }
 
+# Query-only expansions. Documents stay on their own word forms.
+QUERY_SYNONYM_GROUPS = (
+    ("жалоба", "обращение", "пожаловаться"),
+    ("билет", "проезд", "тариф"),
+    ("стоит", "стоимость"),
+    ("банковская карта", "стоп-лист"),
+)
 
-def normalize_tokens(text: str) -> list[str]:
-    words = re.findall(r"[a-zа-яё0-9]+", text.lower())
+# Longest first. Relational adjective endings are listed whole so «банковской» meets «банк».
+_ENDINGS = (
+    "овскими", "евскими", "овского", "евского", "овскому", "евскому",
+    "овская", "евская", "овское", "евское", "овские", "евские",
+    "овскую", "евскую", "овской", "евской", "овский", "евский",
+    "овским", "евским", "овских", "евских",
+    "скими", "ского", "скому", "ская", "ское", "ские", "скую", "ской", "ский", "ским", "ских",
+    "остью", "ости", "ость",
+    "иями", "ями", "ами", "иях", "ого", "его", "ому", "ему", "ыми", "ими",
+    "ах", "ях", "ов", "ев", "ам", "ям", "ом", "ем",
+    "ая", "яя", "ое", "ее", "ые", "ие", "ую", "юю", "ою", "ею",
+    "ий", "ый", "ой", "ей", "ым", "им", "ых", "их",
+    "а", "я", "ы", "и", "е", "у", "ю", "о", "ь",
+)
+_MIN_STEM = 3
+
+
+def _fold(text: str) -> str:
+    return (
+        text.lower()
+        .replace("ё", "е")
+        .replace("‑", "-")
+        .replace("–", "-")
+        .replace("—", "-")
+    )
+
+
+def _stem_word(word: str) -> str:
+    """Strip a noun or adjective ending. Numbers, route ids, and Latin stay intact."""
+    if any(char.isdigit() or "a" <= char <= "z" for char in word):
+        return word
+    for ending in _ENDINGS:
+        if len(word) - len(ending) < _MIN_STEM or not word.endswith(ending):
+            continue
+        return word[: -len(ending)]
+    return word
+
+
+def _tokenize(text: str) -> list[str]:
     result = []
-    for word in words:
+    for word in re.findall(r"[a-zа-яё0-9]+", _fold(text)):
         if word in STOPWORDS:
             continue
-        # A conservative Russian stem is enough for retrieval and avoids changing numbers/names.
-        if len(word) > 6 and not word.isdigit():
-            word = word[:6]
-        result.append(word)
+        result.append(_stem_word(word))
     return result
+
+
+def _synonym_matches(folded: str, query_stems: set[str], member: str) -> bool:
+    """A phrase synonym matches only when every word is present, not one leftover token."""
+    if _term_in_text(folded, _fold(member)):
+        return True
+    stems = _tokenize(member)
+    if not stems:
+        return False
+    if len(stems) == 1:
+        return stems[0] in query_stems
+    return set(stems) <= query_stems
+
+
+def _term_in_text(text: str, term: str) -> bool:
+    pattern = r"(?<![0-9a-zа-я])" + re.escape(term) + r"(?![0-9a-zа-я])"
+    return re.search(pattern, text) is not None
+
+
+def expand_query(text: str) -> str:
+    """Append passenger synonyms to the query. Indexed documents are not expanded."""
+    folded = _fold(text)
+    query_stems = set(_tokenize(folded))
+    extras: list[str] = []
+    for group in QUERY_SYNONYM_GROUPS:
+        if not any(_synonym_matches(folded, query_stems, member) for member in group):
+            continue
+        extras.extend(member for member in group if not _synonym_matches(folded, query_stems, member))
+    if not extras:
+        return text
+    return f"{text} {' '.join(extras)}"
+
+
+def normalize_tokens(text: str, *, expand_synonyms: bool = False) -> list[str]:
+    source = expand_query(text) if expand_synonyms else text
+    tokens = _tokenize(source)
+    if not expand_synonyms:
+        return tokens
+    seen: set[str] = set()
+    unique: list[str] = []
+    for token in tokens:
+        if token in seen:
+            continue
+        seen.add(token)
+        unique.append(token)
+    return unique
 
 
 @dataclass
 class SearchHit:
     row: dict
     score: float
+    applicability: str = "applicable"
 
 
 class OfficialTextSearch:
@@ -87,13 +203,15 @@ class OfficialTextSearch:
 
     def search(self, query: str, category: str | None = None, top_k: int = 5,
                context: dict | None = None) -> list[SearchHit]:
-        query_tokens = normalize_tokens(query)
+        query_tokens = normalize_tokens(query, expand_synonyms=True)
         if not query_tokens:
             return []
         query_text = " ".join(query_tokens)
         hits = []
         for row_id, row in self.by_id.items():
-            if not source_applicable(self.sources.get(row["source_id"], {}), context):
+            source = self.sources.get(row["source_id"], {})
+            applicability = source_applicability(source, context)
+            if not source_in_passenger_search(source) or applicability is None:
                 continue
             row_category = str(row.get("category", ""))
             if category and category.lower() not in row_category.lower():
@@ -115,13 +233,14 @@ class OfficialTextSearch:
             priority = max(0, min(100, int(row.get("priority", 50)))) / 100
             score = bm25 + 1.4 * fuzzy + 1.2 * phrase + number_bonus + 0.18 * priority
             if score > 0.35:
-                hits.append(SearchHit(row=row, score=round(score, 4)))
+                hits.append(SearchHit(row=row, score=round(score, 4), applicability=applicability))
         return sorted(hits, key=lambda hit: hit.score, reverse=True)[:max(1, min(top_k, 8))]
 
     def details(self, result_id: str, neighbor_count: int = 1,
                 context: dict | None = None) -> list[dict]:
         row = self.by_id.get(result_id)
-        if not row or not source_applicable(self.sources.get(row["source_id"], {}), context):
+        source = self.sources.get(row["source_id"], {}) if row else {}
+        if not row or not source_in_passenger_search(source) or source_applicability(source, context) is None:
             return []
         source_rows = self.by_source.get(row["source_id"], [])
         try:

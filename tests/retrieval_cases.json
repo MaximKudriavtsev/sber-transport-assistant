@@ -1,0 +1,322 @@
+[
+  {
+    "id": "pass-stk-price",
+    "topic": "pass",
+    "query": "сколько стоит льготный проездной",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Цена льготного проездного лежит на актуальной странице СТК."
+  },
+  {
+    "id": "pass-school",
+    "topic": "pass",
+    "query": "проездной для школьника",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Школьный проездной описан на странице СТК."
+  },
+  {
+    "id": "pass-pension-750",
+    "topic": "pass",
+    "query": "проездной для пенсионера 750 рублей",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Сумма 750 рублей есть в чанке СТК, номер даёт бонус."
+  },
+  {
+    "id": "pass-rules",
+    "topic": "pass",
+    "query": "правила пользования льготным проездным",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current", "oeirc-discovered-c3abfb76c9"],
+    "notes": "Страница СТК остаётся в top-5. Пассажирские правила «СберТройка» тоже находятся, потому что документ есть в каталоге."
+  },
+  {
+    "id": "pass-reissue",
+    "topic": "pass",
+    "query": "повторная выдача СТК утеря",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Повторная выдача и утеря описаны на странице СТК."
+  },
+  {
+    "id": "pass-troyka-30",
+    "topic": "pass",
+    "query": "абонемент 30 дней тройка сколько стоит",
+    "context": {},
+    "expect_source_ids": ["oeirc-troyka-current"],
+    "notes": "Абонемент на 30 дней описан на странице карты «Тройка»."
+  },
+  {
+    "id": "benefit-student",
+    "topic": "benefit",
+    "query": "льгота на проезд студенту",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Категория «студент» есть на странице СТК."
+  },
+  {
+    "id": "benefit-docs",
+    "topic": "benefit",
+    "query": "какие документы нужны для льготного проезда",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Список документов для льготы — страница СТК."
+  },
+  {
+    "id": "benefit-orphan",
+    "topic": "benefit",
+    "query": "дети сироты льготный проезд",
+    "context": {},
+    "expect_source_ids": ["oeirc-stk-current"],
+    "notes": "Категория дети-сироты есть на странице СТК."
+  },
+  {
+    "id": "benefit-mir",
+    "topic": "benefit",
+    "query": "как оформить льготу на карту МИР",
+    "context": {},
+    "expect_source_ids": ["oeirc-faq-current"],
+    "notes": "Оформление льготы на карту «Мир» находится через FAQ."
+  },
+  {
+    "id": "pay-stoplist",
+    "topic": "payment",
+    "query": "как вывести банковскую карту из стоп-листа",
+    "context": {},
+    "expect_source_ids": ["oeirc-faq-current"],
+    "notes": "Порядок вывода из стоп-листа есть в региональном FAQ."
+  },
+  {
+    "id": "pay-topup-troyka",
+    "topic": "payment",
+    "query": "как пополнить карту Тройка",
+    "context": {},
+    "expect_source_ids": ["oeirc-troyka-current"],
+    "notes": "Пополнение «Тройки» описано на её странице."
+  },
+  {
+    "id": "pay-debt",
+    "topic": "payment",
+    "query": "задолженность по карте стоп лист",
+    "context": {},
+    "expect_source_ids": ["tulatrans-payment-current", "oeirc-faq-current"],
+    "notes": "После чистой нарезки задолженность и стоп-лист читаются со страницы оплаты Тулгорэлектротранса."
+  },
+  {
+    "id": "pay-buy-troyka",
+    "topic": "payment",
+    "query": "где купить карту тройка",
+    "context": {},
+    "expect_source_ids": ["oeirc-troyka-current"],
+    "notes": "Точки продажи карты «Тройка» — её страница."
+  },
+  {
+    "id": "pay-bank-fail",
+    "topic": "payment",
+    "query": "банковская карта не проходит",
+    "context": {},
+    "expect_source_ids": ["oeirc-faq-current", "tulatrans-payment-current"],
+    "notes": "Без оператора тариф Тулы виден как conditional и попадает в top-5 вместе с общими страницами."
+  },
+  {
+    "id": "pay-double-charge",
+    "topic": "payment",
+    "query": "двойное списание",
+    "context": {},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "Прямой фразы нет, но страница оплаты оператора теперь участвует в поиске и попадает в top-5."
+  },
+  {
+    "id": "pay-operator-bank-fail",
+    "topic": "payment",
+    "query": "не проходит банковская карта",
+    "context": {"operator": "МКП \"Тулгорэлектротранс\""},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "При известном операторе тарифная страница Тулы попадает в выдачу."
+  },
+  {
+    "id": "pay-operator-cash",
+    "topic": "payment",
+    "query": "цена разовой поездки наличными",
+    "context": {"operator": "МКП \"Тулгорэлектротранс\""},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "Разовая цена наличными есть на странице оплаты оператора."
+  },
+  {
+    "id": "complaint-hotline",
+    "topic": "complaint",
+    "query": "горячая линия общественного транспорта",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "Прямое совпадение с материалом горячей линии."
+  },
+  {
+    "id": "complaint-phone",
+    "topic": "complaint",
+    "query": "телефон горячей линии общественного транспорта",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "Телефон горячей линии лежит в том же источнике."
+  },
+  {
+    "id": "complaint-form",
+    "topic": "complaint",
+    "query": "форма обращения ОЕИРЦ",
+    "context": {},
+    "expect_source_ids": ["oeirc-contacts"],
+    "notes": "Форма обращения — страница контактов ОЕИРЦ."
+  },
+  {
+    "id": "complaint-call",
+    "topic": "complaint",
+    "query": "куда звонить по вопросам общественного транспорта",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "Вопрос «куда звонить» попадает на горячую линию."
+  },
+  {
+    "id": "complaint-verb",
+    "topic": "complaint",
+    "query": "куда пожаловаться на водителя",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "«Пожаловаться» расширяется до «жалоба» и «обращение» и находит горячую линию."
+  },
+  {
+    "id": "complaint-bus",
+    "topic": "complaint",
+    "query": "жалоба на автобус",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "«Жалоба» расширяется до «обращение» и попадает на горячую линию."
+  },
+  {
+    "id": "route-muni-hotline",
+    "topic": "route",
+    "query": "действующие муниципальные маршруты горячая линия",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "Горячая линия прямо говорит, куда звонить по действующим маршрутам."
+  },
+  {
+    "id": "route-intermunicipal",
+    "topic": "route",
+    "query": "межмуниципальный маршрут",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current"],
+    "notes": "Межмуниципальные маршруты упомянуты на странице горячей линии."
+  },
+  {
+    "id": "route-info",
+    "topic": "route",
+    "query": "информация по маршрутам",
+    "context": {},
+    "expect_source_ids": ["transport-hotline-current", "oeirc-troyka-current"],
+    "notes": "Справка о маршрутах сейчас находится через горячую линию или страницу «Тройки»."
+  },
+  {
+    "id": "route-carrier-27",
+    "topic": "route",
+    "query": "кто перевозчик маршрута 27",
+    "context": {},
+    "expect_source_ids": ["oeirc-routes-wallet", "oeirc-routes-subscription"],
+    "xfail": "Каталоги маршрутов выключены: перевозчика отдаёт resolve_route, не BM25; top-5 — чужие страницы.",
+    "notes": "Перевозчика житель спрашивает полнотекстом. Каталоги маршрутов в поиске отключены."
+  },
+  {
+    "id": "route-wallet-list",
+    "topic": "route",
+    "query": "список маршрутов тройка кошелек",
+    "context": {},
+    "expect_source_ids": ["oeirc-routes-wallet"],
+    "xfail": "Каталог «Кошелёк» выключен: справочник маршрутов не индексируется BM25, в top-5 страница «Тройки».",
+    "notes": "Запрос про список маршрутов кошелька не открывает отключённый каталог."
+  },
+  {
+    "id": "route-schemes",
+    "topic": "route",
+    "query": "схемы маршрутов трамвай",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Шаблон схем не индексируется, но запрос всё ещё попадает на другие страницы.",
+    "notes": "Страница схем — JS-шаблон с {{ и «Загрузка маршрутов», такой чанк не индексируется."
+  },
+  {
+    "id": "ticket-cost",
+    "topic": "ticket",
+    "query": "сколько стоит билет",
+    "context": {},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "«Билет» и «стоит» расширяются до тарифа и стоимости, страница оплаты видна без оператора."
+  },
+  {
+    "id": "ticket-once",
+    "topic": "ticket",
+    "query": "цена разовой поездки",
+    "context": {},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "Без оператора страница с ценой разовой поездки видна с меткой conditional."
+  },
+  {
+    "id": "ticket-operator-once",
+    "topic": "ticket",
+    "query": "стоимость разовой поездки",
+    "context": {"operator": "МКП \"Тулгорэлектротранс\""},
+    "expect_source_ids": ["tulatrans-payment-current"],
+    "notes": "При известном операторе разовая стоимость находится."
+  },
+  {
+    "id": "km-tariff",
+    "topic": "per_km",
+    "query": "тариф за километр",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Тарифа за километр в корпусе нет; «километр» цепляет страницу СТК про расстояние 50 км.",
+    "notes": "Желаемая выдача пустая, пока нет дословной цитаты тарифа за км."
+  },
+  {
+    "id": "km-price",
+    "topic": "per_km",
+    "query": "сколько стоит километр проезда",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Запрос про цену километра возвращает СТК, а не пустую выдачу.",
+    "notes": "Километрового тарифа в чанках нет."
+  },
+  {
+    "id": "km-short",
+    "topic": "per_km",
+    "query": "цена за км",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Короткий запрос «за км» попадает на новость про остановку, не в пустую выдачу.",
+    "notes": "Нет карточки тарифа за км."
+  },
+  {
+    "id": "schedule-word",
+    "topic": "schedule",
+    "query": "расписание",
+    "context": {},
+    "expect_empty": true,
+    "notes": "Одно слово «расписание» сейчас не находит ни одного чанка."
+  },
+  {
+    "id": "schedule-bus-27",
+    "topic": "schedule",
+    "query": "расписание автобуса 27",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Расписания в корпусе нет; запрос возвращает контакты и служебные страницы.",
+    "notes": "Номер маршрута не делает выдачу расписанием."
+  },
+  {
+    "id": "schedule-tram",
+    "topic": "schedule",
+    "query": "во сколько отходит трамвай",
+    "context": {},
+    "expect_empty": true,
+    "xfail": "Времени отправления в корпусе нет, выдача — страница о компании.",
+    "notes": "Вопрос о времени рейса не должен подтверждаться чужим чанком."
+  }
+]

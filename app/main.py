@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +9,21 @@ from .gigachat_client import GigaChatClient
 from .text_search import OfficialTextSearch
 from .schemas import ChatRequest, ChatResponse, HealthResponse
 
+
+def api_docs_urls(app_env: str) -> dict[str, str | None]:
+    if app_env.lower() in {"development", "dev"}:
+        return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
+
+
 settings = get_settings()
 search = OfficialTextSearch(settings)
 conversations = ConversationStore(max_messages=12)
@@ -21,10 +34,11 @@ app = FastAPI(
     title=settings.app_name,
     description="ИИ-ассистент первой линии поддержки пассажиров общественного транспорта",
     version="0.4.0",
+    **api_docs_urls(settings.app_env),
 )
 
 STATIC_DIR = BASE_DIR / "static"
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", CachedStaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/", include_in_schema=False)
@@ -74,6 +88,6 @@ async def clear_conversation(conversation_id: str) -> dict:
 
 @app.get("/api/debug/conversations/{conversation_id}")
 async def conversation_trace(conversation_id: str) -> dict:
-    if settings.app_env.lower() not in {"development", "dev"}:
+    if not settings.is_development:
         return {"enabled": False}
     return {"enabled": True, "trace": service.traces.get(conversation_id, [])}

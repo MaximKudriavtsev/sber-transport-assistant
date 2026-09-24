@@ -19,6 +19,52 @@ def _final(status, answer, severity="safety", pending=None):
         "used_source_ids": []}, ensure_ascii=False)}}
 
 
+def _price(answer: str):
+    return {"finish_reason": "stop", "message": {"role": "assistant", "content": json.dumps({
+        "status": "answered", "answer": answer, "task_mode": "information", "issue_type": "unknown",
+        "severity": "normal", "state_patch": {"slots": {}}, "used_source_ids": []}, ensure_ascii=False)}}
+
+
+def _answered(answer: str, source_ids: list[str] | None = None):
+    return {"finish_reason": "stop", "message": {"role": "assistant", "content": json.dumps({
+        "status": "answered", "answer": answer, "task_mode": "information", "issue_type": "unknown",
+        "severity": "normal", "state_patch": {"slots": {}}, "used_source_ids": source_ids or []}, ensure_ascii=False)}}
+
+
+def test_schedule_question_is_no_data_while_registry_empty(monkeypatch):
+    from app.text_search import SearchHit
+
+    hit = SearchHit(row={
+        "id": "chunk-schedule", "source_id": "foreign-hours", "title": "Режим офиса",
+        "url": "https://example.test/hours", "text": "Офис открыт в 07:40.",
+    }, score=1.0)
+
+    async def completion(messages, functions, function_call):
+        if not any(item.get("role") == "function" for item in messages):
+            return {"finish_reason": "function_call", "message": {
+                "role": "assistant", "content": "",
+                "function_call": {"name": "search_official_sources", "arguments": {"query": "расписание автобуса 27"}},
+            }}
+        return _answered("Автобус 27 отходит в 07:40.", ["chunk-schedule"])
+
+    monkeypatch.setattr(service.search, "search", lambda *args, **kwargs: [hit])
+    monkeypatch.setattr(service.gigachat, "chat_completion", completion)
+    result = client.post("/api/chat", json={"message": "Во сколько отходит автобус 27?"}).json()
+    assert result["status"] == "no_data"
+    assert "07:40" not in result["answer"]
+    assert "не загружено" in result["answer"]
+
+
+def test_pass_price_without_fare_card_is_still_rejected(monkeypatch):
+    async def completion(messages, functions, function_call):
+        return _price("Льготный проездной стоит 750 рублей.")
+
+    monkeypatch.setattr(service.gigachat, "chat_completion", completion)
+    result = client.post("/api/chat", json={"message": "Сколько стоит льготный проездной?"}).json()
+    assert result["status"] == "no_data"
+    assert "750" not in result["answer"]
+
+
 def test_high_risk_numeric_claims_need_exact_evidence():
     assert "10:minutes" in unsupported_concrete_facts("Восстановится через 10 минут.", "Проверьте стоп-лист.")
     assert not unsupported_concrete_facts("Восстановится через 24 часа.", "Восстановится через 24 часов.")
